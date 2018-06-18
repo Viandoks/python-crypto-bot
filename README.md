@@ -111,6 +111,7 @@ As I said earlier, the strategy in there DOES NOT WORK. It is merely a tool for 
 You like what you see? Feel free to tip me, you'll earn my eternal gratitude:
 
 BTC - 1MT45xgCJe68c3eL2iTJMSQLwsDobmzz7r
+
 ETH - 0x4Aa63028CA72D8Ce79E904DE1c53AbC91d2F2347
 
 ### Final Words
