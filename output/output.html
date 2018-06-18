@@ -1,0 +1,119 @@
+<html>
+<head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="./data.js"></script>
+    <script type="text/javascript">
+    var i = 0;
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+    function drawChart() {
+        console.log()
+
+        document.getElementById("last_call").innerText = 'Last call: '+lastcall
+
+        var data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'LH,OC'); // low
+        data.addColumn('number', 'Open');
+        data.addColumn('number', 'Close');
+        data.addColumn('number', 'High');
+        data.addColumn('number', 'MA');
+        data.addColumn('number', 'Order rate');
+        data.addColumn('string', 'Order type');
+        data.addColumn('number', 'Stop Loss');
+        data.addColumn('number', 'Take Profit');
+        data.addColumn('number', 'Exit Rate')
+
+        data.addRows(dataRows);
+
+        var view = new google.visualization.DataView(data);
+        view.setColumns([0, 1, 2, 3, 4, 5,
+            {
+                type: 'number',
+                label: 'Buy Orders',
+                calc: function (dt, row) {
+                    if (dt.getValue(row, 6) && dt.getValue(row, 7) == 'BUY') {
+                        return dt.getValue(row, 6);
+                    }
+                }
+            },
+            {
+                type: 'string',
+                role: 'tooltip',
+                calc: function (dt, row) {
+                    if (dt.getValue(row, 6) && dt.getValue(row, 7) == 'BUY') {
+                        text = "Buy Order: "+dt.getValue(row, 0)+"\n"
+                        text += dt.getValue(row, 6) + " SL:"+dt.getValue(row,8)+" TP:"+dt.getValue(row,9)+"\n";
+                        text += 'Exit: '+dt.getValue(row,10)+' - '
+                        text+=(dt.getValue(row,10) > dt.getValue(row,6))?'Success':'Fail'
+                        return text
+                    }
+                }
+            },
+            {
+                type: 'number',
+                label: 'Sell Orders',
+                calc: function (dt, row) {
+                    if (dt.getValue(row, 6) && dt.getValue(row, 7) == 'SELL') {
+                        return dt.getValue(row, 6);
+                    }
+                }
+            },
+            {
+                type: 'string',
+                role: 'tooltip',
+                calc: function (dt, row) {
+                    if (dt.getValue(row, 6) && dt.getValue(row, 7) == 'SELL') {
+                        text = "Sell Order: "+dt.getValue(row, 0)+"\n"
+                        text += dt.getValue(row, 6) + " SL:"+dt.getValue(row,8)+" TP:"+dt.getValue(row,9)+"\n";
+                        text += 'Exit: '+dt.getValue(row,10)+' - '
+                        text+=(dt.getValue(row,10) < dt.getValue(row,6))?'Success':'Fail'
+                        return text
+                    }
+                }
+            }]);
+
+            var chart = new google.visualization.ComboChart(document.querySelector('#chart_div'));
+            chart.draw(view, {
+                chartArea: {
+                    left: '7%',
+                    width: '70%'
+                },
+                series: {
+                    0: {
+                        type: 'candlesticks'
+                    },
+                    1: {
+                        type: 'line'
+                    },
+                    2: {
+                        type: 'scatter',
+                        colors: ['#27AE60'],
+                        pointShape: 'triangle'
+                    },
+                    3: {
+                        type: 'scatter',
+                        colors: ['#E74C3C'],
+                        pointShape: 'triangle'
+                    }
+                },
+                candlestick: {
+                    fallingColor: { strokeWidth: 0, fill: '#a52714' }, // red
+                    risingColor: { strokeWidth: 0, fill: '#0f9d58' }   // green
+                },
+                explorer: {
+                    actions: ['dragToZoom', 'rightClickToReset'],
+                    axis: 'horizontal',
+                    keepInBounds: true,
+                    maxZoomIn: 100.0
+                }
+            });
+
+        };
+    </script>
+</head>
+<body>
+    <p id="last_call"><p>
+    <div id="chart_div" style="width: 100%; height: 100%"></div>
+</body>
+</html>
