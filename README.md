@@ -73,8 +73,11 @@ To run the bot live you need to enter your api key and secret in the shared.py f
 **Optional**
 
 `-s timestamp` if speficified bot will automatically launch in backtestmode. This is the timestamp of the starting date eg: `-s 1494491969`. If -s is not specified then bot will launch in forward test
+
 `-e timestamp` This is the timestamp of the ending tests for the tests. It should be greater than `-s`
+
 `-n int` This is the length we want to use for moving average ( which is used in the default strategy ) eg: `-n 14`
+
 `--live` Whill launch bot in live mode.
 
 ### Important files
