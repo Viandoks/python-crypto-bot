@@ -91,6 +91,8 @@ To run the bot live you need to enter your api key and secret in the shared.py f
 
 `bot.py` is where everything start
 
+`botapi.py` is where the connections are made between the bot and the registered APIs.
+
 `botstrategy.py` is where the magic happens. The default strategy is a simple Moving Average Crossover strategy. IT WILL NOT WORK LIVE! Feel free to experiment and write your own strategy
 
 `botindicators.py` contains all the indicator available in bostrategy.py
