@@ -1,43 +1,33 @@
 from datetime import datetime, timedelta
+from botapi import BotApi
+from botindicators import BotIndicators
 import time
 import sys
-import poloniex
 import pandas as pd
 import shared
 
-from botcandlestick import BotCandlestick
-from botindicators import BotIndicators
 from botlog import BotLog
 
 
 class BotChart(object):
-    def __init__(self,exchange,period,startTime,endTime,backTest=True):
+    def __init__(self,period,startTime,endTime,backTest=True):
 
-        self.exchange = str(exchange)
+        self.exchange = shared.exchange['name']
         self.pair = shared.exchange['pair']
         self.period = int(period)
         self.startTime = int(startTime)
         self.endTime = int(endTime)
         self.backTest = bool(backTest)
-        self.indicators = BotIndicators()
         self.output = BotLog()
         self.tempCandle = None
+        self.indicators = BotIndicators()
 
         self.data = []
 
-        if (self.exchange == "poloniex"):
-            self.api = poloniex.Poloniex()
+        self.api = BotApi()
 
-            if backTest:
-                if (self.period not in [300,900,1800,7200,14400,86400]):
-                    self.output.fail('Poloniex requires periods in 300,900,1800,7200,14400, or 86400 second increments')
-                    sys.exit(2)
-                poloData = self.api.returnChartData(self.pair,period=int(self.period),start=self.startTime,end=self.endTime)
-                for datum in poloData:
-                    if (datum['open'] and datum['close'] and datum['high'] and datum['low'] and datum['date']):
-                        self.data.append(BotCandlestick(self.period,float(datum['open']),float(datum['close']),float(datum['high']),float(datum['low']),float(datum['weightedAverage']), float(datum['date'])))
-
-
+        if backTest:
+            self.data = self.api.returnChartData(self.pair,period=int(self.period),start=self.startTime,end=self.endTime)
 
     def getPoints(self):
         return self.data
@@ -45,7 +35,7 @@ class BotChart(object):
 
     def getCurrentPrice(self):
         if not self.backTest:
-            currentValues = self.api.returnTicker()[self.pair]
+            currentValues = self.api.returnTicker(self.pair)
             lastPairPrice = {}
             lastPairPrice = currentValues["last"]
             return float(lastPairPrice)

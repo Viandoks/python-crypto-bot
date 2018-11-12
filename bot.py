@@ -16,7 +16,7 @@ def main(argv):
     movingAverageLength = 20
 
     try:
-        opts, args = getopt.getopt(argv,"hp:c:n:s:e:",["period=","currency=","live"])
+        opts, args = getopt.getopt(argv,"hp:c:n:s:e",["period=","currency=","exchange=","live"])
     except getopt.GetoptError:
         print('trading-bot.py -p <period length> -c <currency pair>')
         sys.exit(2)
@@ -36,16 +36,25 @@ def main(argv):
             shared.exchange['pair'] = pair
             shared.exchange['market'] = pair.split("_")[0]
             shared.exchange['coin'] = pair.split("_")[1]
+        elif opt in ("--exchange"):
+            if str(arg) not in ['', 'poloniex', 'kraken']:
+                print("Only poloniex and kraken are supported for now")
+                sys.exit()
+            exchange = str(arg)
+            shared.exchange['name'] = exchange
         elif opt == "--live":
             forwardTest = False
         elif opt == '-n':
             shared.strategy['movingAverageLength'] = int(arg)
 
+    if shared.exchange['name'] == "kraken":
+        shared.exchange['pair'] = str(shared.exchange['coin'])+str(shared.exchange['market'])
+
 
     # startTime specified: we are in backtest mode
     if (startTime):
 
-        chart = BotChart("poloniex", period, startTime, endTime)
+        chart = BotChart(period, startTime, endTime)
 
         strategy = BotStrategy()
         strategy.showPortfolio()
@@ -59,7 +68,7 @@ def main(argv):
 
     else:
 
-        chart = BotChart("poloniex", period, False, False, False)
+        chart = BotChart(period, False, False, False)
 
         strategy = BotStrategy(False, forwardTest)
         strategy.showPortfolio()
@@ -71,12 +80,17 @@ def main(argv):
         while True:
             try:
                 currentPrice = chart.getCurrentPrice()
-            except:
+            except Exception as e:
+                print(e)
                 print("Error fetching current price")
+                return
+
             try:
                 developingCandlestick.tick(currentPrice)
-            except:
+            except Exception as e:
+                print(e)
                 print("Error fetching tick")
+                return
 
             if currentPrice and developingCandlestick and developingCandlestick.isClosed():
                 candlesticks.append(developingCandlestick)

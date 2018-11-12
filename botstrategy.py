@@ -1,8 +1,10 @@
 from botlog import BotLog
 from botindicators import BotIndicators
 from bottrade import BotTrade
+from botapi import BotApi
 import shared
 import poloniex
+import sys
 
 
 class BotStrategy(object):
@@ -32,7 +34,7 @@ class BotStrategy(object):
         self.openOrders = []
 
         #api
-        self.api = poloniex.Poloniex(shared.api['key'], shared.api['secret'])
+        self.api = BotApi()
 
     def tick(self,candlestick):
 
@@ -55,7 +57,7 @@ class BotStrategy(object):
         atr = self.indicators.averageTrueRange(tr, self.averageTrueRanges, 5)
         self.averageTrueRanges.append(atr)
 
-        self.ticker = self.getTicker()
+        self.ticker = self.getTicker(self.pair)
 
         portfolioUpdated = self.updatePortfolio()
         # If live and portfolio not updated, we may run into some unpleasant issues.
@@ -66,11 +68,11 @@ class BotStrategy(object):
         # Strategy needs at least 2 prices to work
         if len(self.prices) > 1:
             self.evaluatePositions()
-            self.updateOpenTrades()
+            self.updateOpenTrades(self.pair)
 
     def evaluatePositions(self):
 
-        openOrders = self.getOpenOrders()
+        openOrders = self.getOpenOrders(self.pair)
 
         '''
             Go Long (buy) if all of these are met:
@@ -100,14 +102,14 @@ class BotStrategy(object):
             takeProfit = self.currentPrice-(2*self.averageTrueRanges[-1])
             self.sell(rate, amount, self.candlesticks[-1].date, stoploss, takeProfit)
 
-    def updateOpenTrades(self):
-        openOrders = self.getOpenOrders()
+    def updateOpenTrades(self, pair):
+        openOrders = self.getOpenOrders(pair)
         for trade in openOrders:
             trade.tick(self.currentPrice, self.candlesticks[-1].date)
 
-    def getOpenOrders(self):
+    def getOpenOrders(self, pair):
         if not self.backTest and not self.forwardTest:
-            orders = self.api.returnOpenOrders(shared.exchange['pair'])
+            orders = self.api.returnOpenOrders(pair)
             return orders
         else:
             openOrders = []
@@ -116,15 +118,15 @@ class BotStrategy(object):
                     openOrders.append(order)
             return openOrders
 
-    def getCurrentPrice(self):
+    def getCurrentPrice(self, pair):
         if not self.backTest:
-            return self.api.returnTicker()[self.pair]['last']
+            return self.api.returnTicker(pair)['last']
         else:
             return self.candlesticks[-1].close
 
-    def getTicker(self):
+    def getTicker(self, pair):
         if not self.backTest:
-            return self.api.returnTicker()[self.pair]
+            return self.api.returnTicker(pair)
         else:
             return {
                 'last': self.currentPrice,
@@ -136,11 +138,18 @@ class BotStrategy(object):
         if not self.backTest and not self.forwardTest:
             try:
                 portfolio = self.api.returnBalances()
-                shared.exchange['nbMarket'] = float(portfolio[shared.exchange['market']])
-                shared.exchange['nbCoin'] = float(portfolio[shared.exchange['coin']])
+                if shared.exchange['market'] in portfolio:
+                    shared.exchange['nbMarket'] = float(portfolio[shared.exchange['market']])
+                else:
+                    shared.exchange['nbMarket'] = 0.00
+                if shared.exchange['coin'] in portfolio:
+                    shared.exchange['nbCoin'] = float(portfolio[shared.exchange['coin']])
+                else:
+                    shared.exchange['nbCoin'] = 0.00
                 return True
-            except:
+            except Exception as e:
                 self.output.warning("Error updating portfolio")
+                print(e)
                 return False
         else:
             return True

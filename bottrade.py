@@ -1,5 +1,5 @@
 from botlog import BotLog
-import poloniex
+from botapi import BotApi
 import time
 import sys
 import shared
@@ -25,15 +25,16 @@ class BotTrade(object):
         self.orderNumber = 0
         self.backTest = backtest
         self.forwardTest = forwardtest
-        self.api = poloniex.Poloniex(shared.api['key'], shared.api['secret'])
+        self.api = BotApi()
 
         orderSuccess = True
         if self.direction == "BUY":
             if not self.backTest and not self.forwardTest:
                 try:
                     order = self.api.buy(shared.exchange['pair'], rate=rate, amount=amount)
-                    self.orderNumber = int(order['orderNumber'])
-                except:
+                    self.orderNumber = order['orderNumber']
+                except Exception as e:
+                    print(e)
                     orderSuccess = False
                     self.output.warning("Buy order failed")
             else:
@@ -48,8 +49,9 @@ class BotTrade(object):
             if not self.backTest and not self.forwardTest:
                 try:
                     order = self.api.sell(shared.exchange['pair'], rate=rate, amount=amount)
-                    self.orderNumber = int(order['orderNumber'])
-                except:
+                    self.orderNumber = order['orderNumber']
+                except Exception as e:
+                    print(e)
                     orderSuccess = False
                     self.output.warning("Sell order failed")
             else:
@@ -58,9 +60,6 @@ class BotTrade(object):
             if orderSuccess:
                 shared.exchange['nbMarket'] += self.total
                 shared.exchange['nbCoin'] -= self.amount
-                if shared.exchange['nbMarket'] < 0:
-                    print(amount, total, rate, amount*rate)
-                    raw_input()
                 self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Sell "+str(amount)+' '+shared.exchange['coin']+' at '+str(rate)+' for '+str(total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(takeProfit))
 
     def tick(self, currentPrice, date):
