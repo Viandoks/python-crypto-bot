@@ -10,6 +10,8 @@ from botlog import BotLog
 
 
 class BotChart(object):
+    'Draws a classic trading chart, humanely readable'
+    
     def __init__(self,period,startTime,endTime,backTest=True):
 
         self.exchange = shared.exchange['name']

@@ -97,7 +97,9 @@ class BotTrade(object):
                 tradeStatus = tradeStatus + " Profit: \033[92m"
             else:
                 tradeStatus = tradeStatus + " Loss: \033[91m"
-
-            tradeStatus = tradeStatus+str(self.exitPrice - self.entryPrice)+"\033[0m"
+            if self.direction == 'BUY':
+                tradeStatus = tradeStatus+str((self.exitPrice - self.entryPrice)/self.total)+str(shared.exchange['market'])+"\033[0m"
+            else:
+                tradeStatus = tradeStatus+str((self.entryPrice - self.exitPrice)/self.exitPrice*self.amount)+str(shared.exchange['coin'])+"\033[0m"
 
         self.output.log(tradeStatus)
