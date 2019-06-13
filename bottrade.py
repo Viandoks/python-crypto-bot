@@ -66,7 +66,8 @@ class BotTrade(object):
         if self.stopLoss:
             if (self.direction == 'BUY' and currentPrice < self.stopLoss) or (self.direction == 'SELL' and currentPrice > self.stopLoss):
                 self.output.fail(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Stop Loss")
-                self.close(currentPrice, date)
+                # self.close(currentPrice, date)
+                self.close(self.stopLoss, date)
                 self.showTrade()
         if self.takeProfit:
             if (self.direction == 'BUY' and currentPrice > self.takeProfit) or (self.direction == 'SELL' and currentPrice < self.takeProfit):
@@ -103,3 +104,8 @@ class BotTrade(object):
                 tradeStatus = tradeStatus+str((self.entryPrice - self.exitPrice)/self.exitPrice*self.amount)+str(shared.exchange['coin'])+"\033[0m"
 
         self.output.log(tradeStatus)
+
+    def updateStop(self, newStop):
+        oldStop = self.stopLoss
+        self.stopLoss = float(newStop);
+        self.output.log("Trade stop moved from "+str(oldStop)+" to "+str(newStop))
