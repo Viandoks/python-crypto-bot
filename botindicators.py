@@ -1,5 +1,7 @@
 import numpy
+
 from botcandlestick import BotCandlestick
+from operator import attrgetter
 
 class BotIndicators(object):
     def __init__(self):
@@ -18,6 +20,16 @@ class BotIndicators(object):
     def donchian_low(self, lows):
        return float(min(lows))
 
+    def EMA(self, prices, period):
+       x = numpy.asarray(prices)
+       weights = None
+       weights = numpy.exp(numpy.linspace(-1., 0., period))
+       weights /= weights.sum()
+
+       a = numpy.convolve(x, weights, mode='full')[:len(x)]
+       a[:period] = a[period]
+       return a
+
     def heikinashi(self, currentCandle, previousHeikinashiCandle=False):
         if not previousHeikinashiCandle:
             o = (currentCandle.open+currentCandle.close)/2
@@ -32,15 +44,34 @@ class BotIndicators(object):
         # return {'open': o, 'high': h, 'low': l, 'close': c, 'date': currentCandle.date}
         return BotCandlestick(14400,o,c,h,l,0, currentCandle.date)
 
-    def EMA(self, prices, period):
-        x = numpy.asarray(prices)
-        weights = None
-        weights = numpy.exp(numpy.linspace(-1., 0., period))
-        weights /= weights.sum()
+    #ichimoku default periods are 9, 26, 26, here default values are adapted to crypto market
+    def ichimoku(self, candlesticks, tenkanPeriod=10, kijunPeriod=30, senkouBPeriod=60, displacement=30):
+        tenkan = kijun = senkouA = senkouB = chikou = False
+        if len(candlesticks)>=tenkanPeriod:
+            high = float(max(candlesticks[-tenkanPeriod:-1], key=attrgetter('high')).high)
+            low = float(min(candlesticks[-tenkanPeriod:-1], key=attrgetter('low')).low)
+            tenkan = (high+low)/2
+        if len(candlesticks)>=kijunPeriod:
+            high = float(max(candlesticks[-kijunPeriod:-1], key=attrgetter('high')).high)
+            low = float(min(candlesticks[-kijunPeriod:-1], key=attrgetter('low')).low)
+            kijun = (high+low)/2
+        if tenkan and kijun:
+            senkouA = (tenkan+kijun)/2
+        if len(candlesticks)>=senkouBPeriod:
+            high = float(max(candlesticks[-senkouBPeriod:-1], key=attrgetter('high')).high)
+            low = float(min(candlesticks[-senkouBPeriod:-1], key=attrgetter('low')).low)
+            senkouB = (high+low)/2
+        if len(candlesticks)>=displacement:
+            chikou = candlesticks[-1].close
 
-        a = numpy.convolve(x, weights, mode='full')[:len(x)]
-        a[:period] = a[period]
-        return a
+        return {
+            'tenkan': tenkan,
+            'kijun':kijun,
+            'senkouA': senkouA,
+            'senkouB': senkouB,
+            'chikou': chikou,
+            'displacement': displacement
+        }
 
     def MACD(self, prices, nslow=26, nfast=12):
         emaslow = self.EMA(prices, nslow)
@@ -90,3 +121,22 @@ class BotIndicators(object):
            atr2 = abs(currentCandle.high - previousCandle.close)
            atr3 = abs(currentCandle.low - previousCandle.close)
        return max([atr1, atr2, atr3])
+
+    def williamsFractal(self, candlesticks, period=2):
+        bull = bear = False
+        nbCandles = period*2+1
+        if len(candlesticks)>nbCandles:
+            candlesticks = candlesticks[-nbCandles:]
+            #bullish fractal
+            lows = [c.toDict()['low'] for c in candlesticks]
+            if(lows.index(min(lows)) == period):
+                bull = True
+            #bearish fractal
+            highs = [c.toDict()['high'] for c in candlesticks]
+            if(highs.index(max(highs)) == period):
+                bear = True
+        return {
+            'williamsFractalPeriod': period,
+            'bullFractal': bull,
+            'bearFractal': bear
+        }
