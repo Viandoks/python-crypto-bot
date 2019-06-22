@@ -30,6 +30,17 @@ class BotIndicators(object):
        a[:period] = a[period]
        return a
 
+    def gmma(self, candlesticks, on='close', p1=3, p2=5, p3=8, p4=10, p5=12, p6=15):
+        return [
+            self.movingAverage(candlesticks, p1, on),
+            self.movingAverage(candlesticks, p2, on),
+            self.movingAverage(candlesticks, p3, on),
+            self.movingAverage(candlesticks, p4, on),
+            self.movingAverage(candlesticks, p5, on),
+            self.movingAverage(candlesticks, p6, on)
+            ]
+
+
     def heikinashi(self, currentCandle, previousHeikinashiCandle=False):
         if not previousHeikinashiCandle:
             o = (currentCandle.open+currentCandle.close)/2
@@ -82,10 +93,11 @@ class BotIndicators(object):
         if (len(dataPoints) > period -1):
             return dataPoints[-1] * 100 / dataPoints[-period]
 
-    def movingAverage(self, dataPoints, period):
-        if len(dataPoints) < period:
-            period = len(dataPoints)
-        return sum(dataPoints[-period:]) / float(len(dataPoints[-period:]))
+    def movingAverage(self, candlesticks, period, on='close'):
+        if len(candlesticks) < period:
+            period = len(candlesticks)
+        dataPoints = [c.toDict()[on] for c in candlesticks[-period:]]
+        return sum(dataPoints) / float(len(dataPoints))
 
     def RSI (self, prices, period=14):
         deltas = np.diff(prices)

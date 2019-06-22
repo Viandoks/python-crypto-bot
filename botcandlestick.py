@@ -4,7 +4,7 @@ import time
 from botlog import BotLog
 
 class BotCandlestick(object):
-    def __init__(self,period,open=None,close=None,high=None,low=None,priceAverage=None,date=None):
+    def __init__(self,period,open=None,close=None,high=None,low=None,priceAverage=None,volume=None,date=None):
         self.open = open
         self.close = close
         self.high = high
@@ -13,12 +13,11 @@ class BotCandlestick(object):
         self.period = period
         self.output = BotLog()
         self.priceAverage = priceAverage
+        self.volume = volume
         self.date = date
-        self.currentPrice = priceAverage
+        self.currentPrice = close
         if self.close:
             self.currentPrice = self.close
-
-
 
     def toDict(self):
         return {
@@ -30,6 +29,7 @@ class BotCandlestick(object):
             'startTime': self.startTime,
             'period': self.period,
             'priceAverage': self.priceAverage,
+            'volume': self.volume,
             'date': self.date
         }
 

@@ -11,7 +11,7 @@ from botlog import BotLog
 
 class BotChart(object):
     'Draws a classic trading chart, humanely readable'
-    
+
     def __init__(self,period,startTime,endTime,backTest=True):
 
         self.exchange = shared.exchange['name']
@@ -55,13 +55,9 @@ class BotChart(object):
                 temp[x]['ma'] = movingAverages[x]
                 x+=1
             else:
-                closes = []
-                for c in candlesticks[-(shared.strategy['movingAverageLength']):]:
-                    closes.append(c.close)
-                ma = self.indicators.movingAverage(closes, shared.strategy['movingAverageLength'])
+                ma = self.indicators.movingAverage(candlesticks, shared.strategy['movingAverageLength'])
                 temp[x]['ma'] = ma
-
-        candlesticks = pd.DataFrame(temp)
+        candlesticks = pd.DataFrame.from_records(temp)
         candlesticks.set_index('date', inplace=True)
 
         orders = []
@@ -79,11 +75,13 @@ class BotChart(object):
             orders['exitPrice'] = 0
 
         points = pd.concat([candlesticks, orders], axis=1)
-        points['orderRate'].fillna(0, inplace=True)
-        points['stopLoss'].fillna(0, inplace=True)
-        points['takeProfit'].fillna(0, inplace=True)
         points['orderDirection'].fillna('None', inplace=True)
-        points['exitPrice'].fillna(0, inplace=True)
+        points.fillna(0, inplace=True)
+        # print(points)
+        # points['orderRate'].fillna(0, inplace=True)
+        # points['stopLoss'].fillna(0, inplace=True)
+        # points['takeProfit'].fillna(0, inplace=True)
+        # points['exitPrice'].fillna(0, inplace=True)
 
         output.write("var dataRows = [];")
 

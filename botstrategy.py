@@ -7,21 +7,27 @@ import poloniex
 import sys
 
 
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
+# THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
 class BotStrategy(object):
     def __init__(self, backtest=True, forwardtest=True):
         self.output = BotLog()
         self.pair = shared.exchange['pair']
-        self.backTest = backtest
-        self.currentState = ""
-        self.forwardTest = forwardtest
-        self.prices = []
-        self.closes = []
         self.trades = []
         self.currentPrice = ""
         self.currentClose = ""
+        self.lowestAsk = 0.00
+        self.highestBid = 0.00
         self.simultaneousTrades = 4
         self.tradeMultiplier = 0.1
         self.ticker = {}
+        self.backTest = backtest
+        self.forwardTest = forwardtest
         self.indicators = BotIndicators()
 
         self.candlesticks = []
@@ -38,14 +44,14 @@ class BotStrategy(object):
 
     def tick(self,candlestick):
 
-        if candlestick and candlestick.close:
+        #strategy works on closed candles only
+        if not candlestick.isClosed():
+            return
+        else:
             self.candlesticks.append(candlestick)
-            self.closes.append(candlestick.close)
 
         self.currentPrice = candlestick.currentPrice
-        self.prices.append(candlestick.currentPrice)
-
-        ma = self.indicators.movingAverage(self.closes[-(shared.strategy['movingAverageLength']):], shared.strategy['movingAverageLength'])
+        ma = self.indicators.movingAverage(self.candlesticks, shared.strategy['movingAverageLength'])
         self.movingAverages.append(ma)
 
         previousCandle = False
@@ -65,8 +71,8 @@ class BotStrategy(object):
         if not portfolioUpdated:
             return
 
-        # Strategy needs at least 2 prices to work
-        if len(self.prices) > 1:
+        # Strategy needs at least 2 candles to work
+        if len(self.candlesticks) > 1 and candlestick.isClosed():
             self.evaluatePositions()
             self.updateOpenTrades(self.pair)
 
@@ -83,29 +89,32 @@ class BotStrategy(object):
                 Current Price is lower than moving average
         '''
 
-        golong1 = self.prices[-2] < self.movingAverages[-1]
+        golong1 = self.candlesticks[-2].close < self.movingAverages[-1]
         golong2 = self.currentPrice > self.movingAverages[-1]
-        goshort1 = self.prices[-2] > self.movingAverages[-1]
+        goshort1 = self.candlesticks[-2].close > self.movingAverages[-1]
         goshort2 = self.currentPrice < self.movingAverages[-1]
 
         if golong1 and golong2 and len(openOrders) < self.simultaneousTrades:
             rate = float(self.ticker['lowestAsk'])
             total = shared.exchange['nbMarket']*self.tradeMultiplier
             stoploss = self.currentPrice-self.averageTrueRanges[-1]
-            takeProfit = self.currentPrice+(2*self.averageTrueRanges[-1])
-            self.buy(rate, total, self.candlesticks[-1].date, stoploss, takeProfit)
+            takeprofit = self.currentPrice+(2*self.averageTrueRanges[-1])
+            self.buy(rate, total, self.candlesticks[-1].date, stoploss, takeprofit)
 
-        if goshort1 and goshort2 and len(openOrders) < self.simultaneousTrades:
+        if goshort1 and goshort2 and len(openOrders) < self.simultaneousTrades and False:
             rate = float(self.ticker['highestBid'])
             amount = shared.exchange['nbCoin']*self.tradeMultiplier
             stoploss = self.currentPrice+self.averageTrueRanges[-1]
-            takeProfit = self.currentPrice-(2*self.averageTrueRanges[-1])
-            self.sell(rate, amount, self.candlesticks[-1].date, stoploss, takeProfit)
+            takeprofit = self.currentPrice-(2*self.averageTrueRanges[-1])
+            stoploss = 0
+            takeprofit = 0
+            self.sell(rate, amount, self.candlesticks[-1].date, stoploss, takeprofit)
 
     def updateOpenTrades(self, pair):
         openOrders = self.getOpenOrders(pair)
+        # TODO: implement not backtest
         for trade in openOrders:
-            trade.tick(self.currentPrice, self.candlesticks[-1].date)
+            trade.tick(self.candlesticks[-1], self.candlesticks[-1].date)
 
     def getOpenOrders(self, pair):
         if not self.backTest and not self.forwardTest:

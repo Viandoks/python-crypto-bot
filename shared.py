@@ -10,7 +10,7 @@ strategy = {
 exchange = {
     'name': 'poloniex',
     'spreadPercentage': 0.002,
-    'fees': 0.002,
+    'fee': 0.008,
     'pair': None,
     'market': None,
     'nbMarket': 1,

@@ -43,9 +43,8 @@ def main(argv):
             exchange = str(arg)
             shared.exchange['name'] = exchange
         elif opt == "--live":
+            print("You're going live... All losts are your reponsability only!")
             forwardTest = False
-        elif opt == '-n':
-            shared.strategy['movingAverageLength'] = int(arg)
 
     if shared.exchange['name'] == "kraken":
         shared.exchange['pair'] = str(shared.exchange['coin'])+str(shared.exchange['market'])
@@ -73,8 +72,7 @@ def main(argv):
         strategy = BotStrategy(False, forwardTest)
         strategy.showPortfolio()
 
-        candlesticks = []
-        developingCandlestick = BotCandlestick(float(period))
+        candlestick = BotCandlestick(float(period))
 
         x = 0
         while True:
@@ -86,24 +84,22 @@ def main(argv):
                 return
 
             try:
-                developingCandlestick.tick(currentPrice)
+                candlestick.tick(currentPrice)
             except Exception as e:
                 print(e)
                 print("Error fetching tick")
                 return
 
-            if currentPrice and developingCandlestick and developingCandlestick.isClosed():
-                candlesticks.append(developingCandlestick)
-                strategy.tick(developingCandlestick)
-                developingCandlestick = BotCandlestick(float(period))
-                chart.drawChart(candlesticks, strategy.movingAverages, strategy.trades)
-            elif currentPrice and developingCandlestick:
-                # If current candlestick is not close, this little hack will allow to update chart anyway
-                tempCandle = copy.copy(developingCandlestick)
-                tempCandle.close = currentPrice
-                tempCandles = copy.copy(candlesticks)
-                tempCandles.append(tempCandle)
-                chart.drawChart(tempCandles, strategy.movingAverages, strategy.trades)
+            strategy.tick(candlestick)
+
+            drawingCandles = copy.copy(strategy.candlesticks)
+            if not candlestick.isClosed():
+                drawingCandles.append(copy.copy(candlestick))
+                drawingCandles[-1].close = candlestick.currentPrice
+            chart.drawChart(drawingCandles, strategy.movingAverages, strategy.trades)
+
+            if candlestick.isClosed():
+                candlestick = BotCandlestick(float(period))
 
             x+=1
             time.sleep(int(10))

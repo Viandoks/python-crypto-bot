@@ -3,7 +3,7 @@ from botcandlestick import BotCandlestick
 import sys
 import shared
 import poloniex
-import krakenex
+# import krakenex
 
 class BotApi(object):
 
@@ -27,8 +27,8 @@ class BotApi(object):
             poloData = self.api.returnChartData(pair,period=int(period),start=int(start),end=int(end))
             #TODO: check for error
             for datum in poloData:
-                if (datum['open'] and datum['close'] and datum['high'] and datum['low'] and datum['date']):
-                    data.append(BotCandlestick(period,float(datum['open']),float(datum['close']),float(datum['high']),float(datum['low']),float(datum['weightedAverage']), float(datum['date'])))
+                if (datum['open'] and datum['close'] and datum['high'] and datum['low'] and datum['date'] and datum['volume'] and datum['weightedAverage']):
+                    data.append(BotCandlestick(period,float(datum['open']),float(datum['close']),float(datum['high']),float(datum['low']),float(datum['weightedAverage']), float(datum['volume']), float(datum['date'])))
 
         elif self.exchange == 'kraken':
             if (period not in [1, 5, 15, 30, 60, 240, 1440, 10080, 21600]):
@@ -104,7 +104,31 @@ class BotApi(object):
             sys.exit(2)
         return balances
 
-    def buy(self, pair, rate, amount):
+    def marketBuy(self, pair, rate, amout):
+        order = {}
+        if self.exchange == 'poloniex':
+            try:
+                #no market buy on poloniex, buying at 110% of the price "hacks" this
+                data = self.api.buy(shared.exchange['pair'], rate='{0:.10f}'.format(rate*1.1), amount=amount, orderType="fillOrKill")
+                order = data
+            except Exception as e:
+                self.output.fail(e)
+                return False
+        elif self.exchange == 'kraken':
+            data = self.api.query_private('AddOrder', data={'ordertype': 'market', 'pair':pair, 'type': 'buy', 'volume': str(amount)})
+            if len(data['error']) > 0:
+                for e in data['error']:
+                    self.output.fail(e)
+                return False
+            order = {
+                'orderNumber': data['result']['txid'][0]
+            }
+        else:
+            self.output.fail("Not a valid exchange")
+            sys.exit(2)
+        return order
+
+    def limitBuy(self, pair, rate, amount):
         order = {}
         if self.exchange == 'poloniex':
             try:
@@ -128,7 +152,31 @@ class BotApi(object):
             sys.exit(2)
         return order
 
-    def sell(self, pair, rate, amount):
+    def marketSell(self, pair, rate, amount):
+        order = {}
+        if self.exchange == 'poloniex':
+            try:
+                #no market sell on poloniex, selling at 90% of the price "hacks" this
+                data = self.api.sell(shared.exchange['pair'], rate='{0:.10f}'.format(rate*0.9), amount=amount, orderType="fillOrKill")
+                order = data
+            except Exception as e:
+                print(e)
+                return False
+        elif self.exchange == 'kraken':
+            data = self.api.query_private('AddOrder', data={'ordertype': 'market', 'pair':pair, 'type': 'sell', 'volume': str(amount)})
+            if len(data['error']) > 0:
+                for e in data['error']:
+                    self.output.fail(e)
+                return False
+            order = {
+                'orderNumber': data['result']['txid'][0]
+            }
+        else:
+            self.output.fail("Not a valid exchange")
+            sys.exit(2)
+        return order
+
+    def limitSell(self, pair, rate, amount):
         order = {}
         if self.exchange == 'poloniex':
             try:
