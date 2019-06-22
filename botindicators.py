@@ -126,12 +126,13 @@ class BotIndicators(object):
             else:
                 return 50 # output a neutral amount until enough prices in list to calculate RSI
 
-    def trueRange(self, currentCandle, previousCandle = False):
+    def trueRange(self, candles):
        atr1 = atr2 = atr3 = 0
-       atr1 = abs(currentCandle.high - currentCandle.low)
-       if previousCandle:
-           atr2 = abs(currentCandle.high - previousCandle.close)
-           atr3 = abs(currentCandle.low - previousCandle.close)
+       candles = candles[-2:]
+       atr1 = abs(candles[-1].high - candles[-1].low)
+       if len(candles) > 1:
+           atr2 = abs(candles[-1].high - candles[-2].close)
+           atr3 = abs(candles[-1].low - candles[-2].close)
        return max([atr1, atr2, atr3])
 
     def williamsFractal(self, candlesticks, period=2):

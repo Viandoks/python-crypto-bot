@@ -56,10 +56,7 @@ class BotStrategy(object):
         ma = self.indicators.movingAverage(self.candlesticks, shared.strategy['movingAverageLength'])
         self.movingAverages.append(ma)
 
-        previousCandle = False
-        if len(self.candlesticks[-2:-1]) > 0:
-            previousCandle = self.candlesticks[-2:-1][0]
-        tr = self.indicators.trueRange(candlestick, previousCandle)
+        tr = self.indicators.trueRange(self.candlesticks)
         self.trueRanges.append(tr)
 
         atr = self.indicators.averageTrueRange(tr, self.averageTrueRanges, 5)
