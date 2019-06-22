@@ -18,6 +18,8 @@ class BotStrategy(object):
     def __init__(self, backtest=True, forwardtest=True):
         self.output = BotLog()
         self.pair = shared.exchange['pair']
+        self.coinsInOrder = shared.exchange['coinsInOrder']
+        self.marketInOrder = shared.exchange['marketInOrder']
         self.trades = []
         self.currentPrice = ""
         self.currentClose = ""
@@ -73,8 +75,8 @@ class BotStrategy(object):
 
         # Strategy needs at least 2 candles to work
         if len(self.candlesticks) > 1 and candlestick.isClosed():
-            self.evaluatePositions()
             self.updateOpenTrades(self.pair)
+            self.evaluatePositions()
 
     def evaluatePositions(self):
 
@@ -96,18 +98,16 @@ class BotStrategy(object):
 
         if golong1 and golong2 and len(openOrders) < self.simultaneousTrades:
             rate = float(self.ticker['lowestAsk'])
-            total = shared.exchange['nbMarket']*self.tradeMultiplier
+            total = (shared.exchange['nbMarket']-shared.exchange['marketInOrder'])*self.tradeMultiplier
             stoploss = self.currentPrice-self.averageTrueRanges[-1]
             takeprofit = self.currentPrice+(2*self.averageTrueRanges[-1])
             self.buy(rate, total, self.candlesticks[-1].date, stoploss, takeprofit)
 
-        if goshort1 and goshort2 and len(openOrders) < self.simultaneousTrades and False:
+        if goshort1 and goshort2 and len(openOrders) < self.simultaneousTrades:
             rate = float(self.ticker['highestBid'])
-            amount = shared.exchange['nbCoin']*self.tradeMultiplier
+            amount = (shared.exchange['nbCoin']-shared.exchange['coinsInOrder'])*self.tradeMultiplier
             stoploss = self.currentPrice+self.averageTrueRanges[-1]
             takeprofit = self.currentPrice-(2*self.averageTrueRanges[-1])
-            stoploss = 0
-            takeprofit = 0
             self.sell(rate, amount, self.candlesticks[-1].date, stoploss, takeprofit)
 
     def updateOpenTrades(self, pair):

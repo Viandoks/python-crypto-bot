@@ -15,5 +15,7 @@ exchange = {
     'market': None,
     'nbMarket': 1,
     'coin': None,
-    'nbCoin': 1
+    'nbCoin': 1,
+    'marketInOrder': 0.0,
+    'coinsInOrder': 0.0
 }
