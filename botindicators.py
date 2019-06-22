@@ -7,11 +7,11 @@ class BotIndicators(object):
     def __init__(self):
          pass
 
-    def averageTrueRange(self, tr, previousATRs=[], period = 5):
-        previousATR = 0
-        if len(previousATRs[-2:-1]) > 0:
-            previousATR = previousATRs[-2:-1][0]
-        atr = ((previousATR*(period-1))+tr)/period
+    def averageTrueRange(self, trueRanges=[], period = 14):
+        trueRanges=trueRanges[-period:]
+        if len(trueRanges) < period:
+            period = len(trueRanges)
+        atr = self.movingAverage(trueRanges, period, False)
         return atr
 
     def donchian_up(self, highs):
@@ -93,10 +93,13 @@ class BotIndicators(object):
         if (len(dataPoints) > period -1):
             return dataPoints[-1] * 100 / dataPoints[-period]
 
-    def movingAverage(self, candlesticks, period, on='close'):
-        if len(candlesticks) < period:
-            period = len(candlesticks)
-        dataPoints = [c.toDict()[on] for c in candlesticks[-period:]]
+    def movingAverage(self, data, period, on=False):
+        if len(data) < period:
+            period = len(data)
+        if on:
+            dataPoints = [c.toDict()[on] for c in data[-period:]]
+        else:
+            dataPoints = data
         return sum(dataPoints) / float(len(dataPoints))
 
     def RSI (self, prices, period=14):

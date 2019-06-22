@@ -53,13 +53,13 @@ class BotStrategy(object):
             self.candlesticks.append(candlestick)
 
         self.currentPrice = candlestick.currentPrice
-        ma = self.indicators.movingAverage(self.candlesticks, shared.strategy['movingAverageLength'])
+        ma = self.indicators.movingAverage(self.candlesticks, shared.strategy['movingAverageLength'], 'close')
         self.movingAverages.append(ma)
 
         tr = self.indicators.trueRange(self.candlesticks)
         self.trueRanges.append(tr)
 
-        atr = self.indicators.averageTrueRange(tr, self.averageTrueRanges, 5)
+        atr = self.indicators.averageTrueRange(self.trueRanges, 5)
         self.averageTrueRanges.append(atr)
 
         self.ticker = self.getTicker(self.pair)
