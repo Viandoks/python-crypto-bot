@@ -14,11 +14,12 @@ class BotIndicators(object):
         atr = self.movingAverage(trueRanges, period, False)
         return atr
 
-    def donchian_up(self, highs):
-        return float(max(highs))
-
-    def donchian_low(self, lows):
-       return float(min(lows))
+    def donchianChannels(self, candlesticks, period=20):
+        candlesticks = candlesticks[-period:]
+        return {
+            'donchian_up': float(max([c.toDict()['high'] for c in candlesticks])),
+            'donchian_low': float(min([c.toDict()['low'] for c in candlesticks]))
+        }
 
     def EMA(self, prices, period):
        x = numpy.asarray(prices)
