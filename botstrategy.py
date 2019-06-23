@@ -53,7 +53,7 @@ class BotStrategy(object):
             self.candlesticks.append(candlestick)
 
         self.currentPrice = candlestick.currentPrice
-        ma = self.indicators.movingAverage(self.candlesticks, shared.strategy['movingAverageLength'], 'close')
+        ma = self.indicators.sma(self.candlesticks, shared.strategy['movingAverageLength'], 'close')
         self.movingAverages.append(ma)
 
         tr = self.indicators.trueRange(self.candlesticks)
