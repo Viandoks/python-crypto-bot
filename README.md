@@ -67,6 +67,9 @@ A new call is made every 10 seconds. You can follow the trades almost live be re
 #### Run live
 !!!!! DO NOT DO THIS IF YOU'RE NOT 100% SURE OF WHAT YOU'RE DOING! I WILL NOT BE HELD RESPONSIBLE IF YOU LOSE MONEY!!!!!
 To run the bot live you need to enter your api key and secret in the shared.py file. If you don't know what an api key is, you shouldn't even try to launch that bot live. However feel free to have fun in backtest and forward test mode.
+```
+python3 bot.py -c 'USDT_BTC' -p 86400 --live
+```
 
 #### Arguments
 
