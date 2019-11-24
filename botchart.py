@@ -42,52 +42,34 @@ class BotChart(object):
             lastPairPrice = currentValues["last"]
             return float(lastPairPrice)
 
-    def drawChart(self, candlesticks, movingAverages, trades):
+    def drawChart(self, candlesticks, movingAverages, orders):
 
         # googlecharts
         output = open("./output/data.js",'w')
         output.truncate()
-        temp = []
-        x = 0
-        for candle in candlesticks:
-            temp.append(candle.toDict())
-            if x < len(movingAverages):
-                temp[x]['ma'] = movingAverages[x]
-                x+=1
-            else:
-                ma = self.indicators.movingAverage(candlesticks, shared.strategy['movingAverageLength'])
-                temp[x]['ma'] = ma
-        candlesticks = pd.DataFrame.from_records(temp)
+
+        # candlesticks
+        candlesticks = pd.DataFrame.from_records([c.toDict() for c in candlesticks])
+        ma = pd.DataFrame(movingAverages)
+        candlesticks['ma'] = ma
         candlesticks.set_index('date', inplace=True)
 
-        orders = []
-        for o in trades:
-            orders.append({'date': o.date, 'orderRate': o.entryPrice, 'orderDirection': o.direction, 'stopLoss':o.stopLoss, 'takeProfit': o.takeProfit, 'exitPrice':o.exitPrice})
-        orders = pd.DataFrame(orders)
+        # orders
+        orders = pd.DataFrame.from_records([o.toDict() for o in orders])
         if len(orders)>1:
             orders.set_index('date', inplace=True)
         else :
-            orders = pd.DataFrame()
-            orders['orderRate'] = 0
-            orders['orderDirection'] = 'None'
+            orders['rate'] = 0
+            orders['direction'] = 'None'
             orders['stopLoss'] = 0
             orders['takeProfit'] = 0
-            orders['exitPrice'] = 0
+            orders['exitRate'] = 0
 
-        points = pd.concat([candlesticks, orders], axis=1)
-        points['orderDirection'].fillna('None', inplace=True)
-        points.fillna(0, inplace=True)
-        # print(points)
-        # points['orderRate'].fillna(0, inplace=True)
-        # points['stopLoss'].fillna(0, inplace=True)
-        # points['takeProfit'].fillna(0, inplace=True)
-        # points['exitPrice'].fillna(0, inplace=True)
+        # concat all to one dataframe
+        data = pd.concat([candlesticks, orders], axis=1)
+        data['direction'].fillna('None', inplace=True)
+        data.fillna(0, inplace=True)
 
-        output.write("var dataRows = [];")
-
-        # New elements should be added to dataRows in accordance with the datatable in output.hmtl
-        for date, point in points.iterrows():
-            output.write("dataRows.push([new Date("+str(int(date)*1000)+"), "+str(point.low)+", "+str(point.open)+","+str(point.close)+","+str(point.high)+","+str(point.ma)+","+str(point.orderRate)+",'"+str(point.orderDirection)+"',"+str(point.stopLoss)+","+str(point.takeProfit)+","+str(point.exitPrice)+"]);\n")
-
-
+        # add to data.js
+        output.write("var dataRows = "+data.to_json(orient='index')+";")
         output.write("var lastcall = '"+str(time.ctime())+"'")

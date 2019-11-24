@@ -13,16 +13,15 @@ class BotTrade(object):
         self.output = BotLog()
         self.status = "OPEN"
         self.filledOn = ""
-        self.entryPrice = rate
+        self.rate = rate
         self.direction = direction
         self.stopLoss = stopLoss
         self.takeProfit = takeProfit
         self.date = date
-        self.exitPrice = 0.0
+        self.exitRate = 0.0
         self.exitDate = 0.0
         self.amount = amount
         self.total = total
-        self.info = ''
         self.orderNumber = orderNb
         self.backTest = backtest
         self.forwardTest = forwardtest
@@ -45,7 +44,7 @@ class BotTrade(object):
             if orderSuccess:
                 shared.exchange['nbMarket'] -= self.total
                 self.amount -= self.amount*self.fee
-                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.entryPrice)+' for '+str(self.total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
+                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.rate)+' for '+str(self.total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
 
         elif self.direction == "SELL":
             if not self.backTest and not self.forwardTest:
@@ -62,12 +61,33 @@ class BotTrade(object):
             if orderSuccess:
                 shared.exchange['nbCoin'] -= self.amount
                 self.total -= self.total*self.fee
-                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Sell "+str(self.amount)+' '+shared.exchange['coin']+' at '+str(self.entryPrice)+' for '+str(self.total)+' ('+str(self.fee*100)+'% fees) '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
+                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Sell "+str(self.amount)+' '+shared.exchange['coin']+' at '+str(self.rate)+' for '+str(self.total)+' ('+str(self.fee*100)+'% fees) '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
 
 
         orderNb+=1
         if not orderSuccess:
             self.status = 'FAILED'
+
+    def __setitem__(self, key, value):
+          setattr(self, key, value)
+
+    def __getitem__(self, key):
+          return getattr(self, key)
+
+    def toDict(self):
+        return {
+            'date': self.date,
+            'direction': self.direction,
+            'amount': self.amount,
+            'rate': self.rate,
+            'total': self.total,
+            'stopLoss': self.stopLoss,
+            'takeProfit': self.takeProfit,
+            'exitRate': self.exitRate,
+            'filledOn': self.filledOn,
+            'exitDate': self.exitDate,
+            'orderNumber': self.orderNumber
+        }
 
     def tick(self, candlestick, date):
         if not self.backTest and not self.forwardTest:
@@ -75,7 +95,7 @@ class BotTrade(object):
             # TODO: implement not backtest
             pass
         if not self.filledOn:
-            if (self.direction == 'BUY' and candlestick.high > self.entryPrice) or (self.direction == 'SELL' and candlestick.low < self.entryPrice):
+            if (self.direction == 'BUY' and candlestick.high > self.rate) or (self.direction == 'SELL' and candlestick.low < self.rate):
                 self.filledOn = date
                 if self.direction =='BUY':
                     shared.exchange['nbCoin'] += self.amount
@@ -128,7 +148,7 @@ class BotTrade(object):
             # TODO: implement not backtest
             pass
         self.status = "CLOSED"
-        self.exitPrice = currentPrice
+        self.exitRate = currentPrice
         self.exitDate =  date
         if self.direction == 'BUY':
             shared.exchange['nbMarket'] += self.total
@@ -138,17 +158,17 @@ class BotTrade(object):
         self.showTrade()
 
     def showTrade(self):
-        tradeStatus = "Order #"+str(self.orderNumber)+" - Entry Price: "+str(self.entryPrice)+" Status: "+str(self.status)+" Exit Price: "+str(self.exitPrice)
+        tradeStatus = "Order #"+str(self.orderNumber)+" - Entry Price: "+str(self.rate)+" Status: "+str(self.status)+" Exit Price: "+str(self.exitRate)
 
         if (self.status == "CLOSED"):
-            if (self.direction == 'BUY' and self.exitPrice > self.entryPrice) or (self.direction == 'SELL' and self.exitPrice < self.entryPrice):
+            if (self.direction == 'BUY' and self.exitRate > self.rate) or (self.direction == 'SELL' and self.exitRate < self.rate):
                 tradeStatus = tradeStatus + " Profit: \033[92m"
             else:
                 tradeStatus = tradeStatus + " Loss: \033[91m"
             if self.direction == 'BUY':
-                tradeStatus = tradeStatus+str((self.exitPrice - self.entryPrice)/self.total)+str(shared.exchange['market'])+"\033[0m"
+                tradeStatus = tradeStatus+str((self.exitRate - self.rate)/self.total)+str(shared.exchange['market'])+"\033[0m"
             else:
-                tradeStatus = tradeStatus+str((self.entryPrice - self.exitPrice)/self.exitPrice*self.amount)+str(shared.exchange['coin'])+"\033[0m"
+                tradeStatus = tradeStatus+str((self.rate - self.exitRate)/self.exitRate*self.amount)+str(shared.exchange['coin'])+"\033[0m"
 
         self.output.log(tradeStatus)
 
