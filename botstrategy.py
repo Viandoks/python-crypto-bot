@@ -43,7 +43,6 @@ class BotStrategy(object):
         self.api = BotApi()
 
     def tick(self,candlestick):
-        self.sell(1, 0.01, candlestick.date)
 
         #strategy works on closed candles only
         if not candlestick.isClosed():
