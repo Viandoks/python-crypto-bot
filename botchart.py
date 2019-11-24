@@ -1,10 +1,12 @@
-from datetime import datetime, timedelta
 from botapi import BotApi
-from botindicators import BotIndicators
-import time
-import sys
+from botcandlestick import BotCandlestick
+
+
+from datetime import datetime, timedelta
 import pandas as pd
+import time
 import shared
+import sys
 
 from botlog import BotLog
 
@@ -12,37 +14,46 @@ from botlog import BotLog
 class BotChart(object):
     'Draws a classic trading chart, humanely readable'
 
-    def __init__(self,period,startTime,endTime,backTest=True):
+    def __init__(self,timeframe,startTime,endTime,backTest=True):
 
-        self.exchange = shared.exchange['name']
         self.pair = shared.exchange['pair']
-        self.period = int(period)
-        self.startTime = int(startTime)
-        self.endTime = int(endTime)
+        self.timeframe = str(timeframe)
+        self.startTime = str(startTime)
+        self.endTime = str(endTime)
         self.backTest = bool(backTest)
         self.output = BotLog()
         self.tempCandle = None
-        self.indicators = BotIndicators()
 
         self.data = []
 
+        # API
         self.api = BotApi()
 
         if backTest:
-            self.data = self.api.returnChartData(self.pair,period=int(self.period),start=self.startTime,end=self.endTime)
+            from_timestamp = self.api.parse8601(self.startTime)
+            try:
+                print(self.api.milliseconds(), 'Fetching candles starting from', self.api.iso8601(from_timestamp))
+                ohlcvs = self.api.fetch_ohlcv(shared.exchange['pair'], timeframe=self.timeframe, since=from_timestamp)
+                print(self.api.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
+
+                for ohlcv in ohlcvs:
+                    self.data.append(BotCandlestick(float(ohlcv[0]), float(ohlcv[1]), float(ohlcv[2]), float(ohlcv[3]), float(ohlcv[4]), float(ohlcv[5])))
+
+
+            except (ccxt.ExchangeError, ccxt.AuthenticationError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as error:
+                print('Got an error', type(error).__name__, error.args)
+                exit(2)
 
     def getPoints(self):
         return self.data
 
-
     def getCurrentPrice(self):
         if not self.backTest:
-            currentValues = self.api.returnTicker(self.pair)
-            lastPairPrice = {}
-            lastPairPrice = currentValues["last"]
-            return float(lastPairPrice)
+            ticker = self.api.fetchTicker(self.pair)
+            price = ticker["last"]
+            return float(price)
 
-    def drawChart(self, candlesticks, movingAverages, orders):
+    def drawChart(self, candlesticks, orders, movingAverages):
 
         # googlecharts
         output = open("./output/data.js",'w')
@@ -51,7 +62,10 @@ class BotChart(object):
         # candlesticks
         candlesticks = pd.DataFrame.from_records([c.toDict() for c in candlesticks])
         ma = pd.DataFrame(movingAverages)
-        candlesticks['ma'] = ma
+        if len(ma) > 0:
+            candlesticks['ma'] = ma
+        else:
+            candlesticks['ma'] = 0
         candlesticks.set_index('date', inplace=True)
 
         # orders
@@ -59,6 +73,7 @@ class BotChart(object):
         if len(orders)>1:
             orders.set_index('date', inplace=True)
         else :
+            orders['orderNumber'] = 0
             orders['rate'] = 0
             orders['direction'] = 'None'
             orders['stopLoss'] = 0

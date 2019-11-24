@@ -1,41 +1,45 @@
-from botlog import BotLog
 from botapi import BotApi
-import time
-import sys
-import shared
+from botlog import BotLog
+
 import logging
+import shared
+import sys
+import time
+
 logging.basicConfig(level=logging.INFO)
 
 orderNb = 1
 class BotTrade(object):
-    def __init__(self,direction,amount,rate,total,date,stopLoss=0, takeProfit=0, backtest=True, forwardtest=True):
+    def __init__(self,direction,amount,rate,total,date,stopLoss=0, takeProfit=0, backtest=True, live=False):
         global orderNb
-        self.output = BotLog()
-        self.status = "OPEN"
-        self.filledOn = ""
-        self.rate = rate
+        self.amount = amount
+        self.backTest = backtest
+        self.date = date
         self.direction = direction
+        self.exitDate = 0.0
+        self.exitRate = 0.0
+        self.fee = float(shared.exchange['fee'])
+        self.filledOn = ""
+        self.live = live
+        self.orderNumber = orderNb
+        self.output = BotLog()
+        self.rate = rate
+        self.status = "OPEN"
         self.stopLoss = stopLoss
         self.takeProfit = takeProfit
-        self.date = date
-        self.exitRate = 0.0
-        self.exitDate = 0.0
-        self.amount = amount
         self.total = total
-        self.orderNumber = orderNb
-        self.backTest = backtest
-        self.forwardTest = forwardtest
-        self.fee = float(shared.exchange['fee'])
+
+        # API
         self.api = BotApi()
 
         orderSuccess = True
         if self.direction == "BUY":
-            if not self.backTest and not self.forwardTest:
+            if not self.backTest and self.live:
                 try:
-                    order = self.api.limitBuy(shared.exchange['pair'], rate=rate, amount=amount)
-                    self.orderNumber = order['orderNumber']
+                    order = self.api.createLimitBuyOrder(shared.exchange['pair'], amount, rate)
+                    self.orderNumber = order['id']
                 except Exception as e:
-                    self.output.fail(e)
+                    self.output.fail(str(e))
                     orderSuccess = False
                     self.output.fail("Buy order failed")
             elif self.total < 0.00001:
@@ -47,10 +51,10 @@ class BotTrade(object):
                 self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.rate)+' for '+str(self.total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
 
         elif self.direction == "SELL":
-            if not self.backTest and not self.forwardTest:
+            if not self.backTest and self.live:
                 try:
-                    order = self.api.sell(shared.exchange['pair'], rate=rate, amount=amount)
-                    self.orderNumber = order['orderNumber']
+                    order = self.api.createLimitSellOrder(shared.exchange['pair'], amount, rate)
+                    self.orderNumber = order['id']
                 except Exception as e:
                     print(e)
                     orderSuccess = False
@@ -90,7 +94,7 @@ class BotTrade(object):
         }
 
     def tick(self, candlestick, date):
-        if not self.backTest and not self.forwardTest:
+        if not self.backTest and self.live:
             date = float(time.time())
             # TODO: implement not backtest
             pass
@@ -143,7 +147,7 @@ class BotTrade(object):
                 return
 
     def close(self, currentPrice, date=0.0):
-        if not self.backTest and not self.forwardTest:
+        if not self.backTest and self.live:
             date = float(time.time())
             # TODO: implement not backtest
             pass

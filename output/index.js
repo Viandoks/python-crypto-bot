@@ -17,6 +17,7 @@ function drawChart() {
     data.addColumn('number', 'Stop Loss');
     data.addColumn('number', 'Take Profit');
     data.addColumn('number', 'Exit Rate')
+    data.addColumn('number', 'Order Number');
     data.addColumn('number', 'MA');
 
     Object.keys(dataRows).map(function(k) {
@@ -27,11 +28,12 @@ function drawChart() {
             dataRows[k].close,          // 3
             dataRows[k].high,           // 4
             dataRows[k].rate,           // 5
-            dataRows[k].direction, // 6
+            dataRows[k].direction,      // 6
             dataRows[k].stopLoss,       // 7
             dataRows[k].takeProfit,     // 8
             dataRows[k].exitRate,       // 9
-            dataRows[k].ma              // 10
+            dataRows[k].orderNumber,    // 10
+            dataRows[k].ma              // 11
         ]);
     });
 
@@ -53,14 +55,18 @@ function drawChart() {
             calc: function (dt, row) {
                 // tooltip for buy orders
                 if (dt.getValue(row, 5) && dt.getValue(row, 6) == 'BUY') {
+                    //Order number at column 10
+                    text = "#"+dt.getValue(row, 10);
                     //date
-                    text = "Buy Order: "+dt.getValue(row, 0)+"\n";
+                    text += " Buy Order: "+dt.getValue(row, 0)+"\n";
                     // stop loss and take profit are in columns 7 and 8
-                    text += dt.getValue(row, 5) + " SL:"+dt.getValue(row,7)+" TP:"+dt.getValue(row,8)+"\n";
+                    text += "Entry: "+dt.getValue(row, 5) + " SL:"+dt.getValue(row,7)+" TP:"+dt.getValue(row,8)+"\n";
                     // exit rate in column 9
-                    text += 'Exit: '+dt.getValue(row,9)+' - ';
-                    // exit rate and entry rate comparison
-                    text+=(dt.getValue(row,9) > dt.getValue(row,5))?'Success':'Fail';
+                    if(dt.getValue(row,9) > 0){
+                        text += 'Exit: '+dt.getValue(row,9)+' - ';
+                        // exit rate and entry rate comparison
+                        text+=(dt.getValue(row,9) > dt.getValue(row,5))?'Success':'Fail';
+                    }
                     return text;
                 }
             }
@@ -81,19 +87,23 @@ function drawChart() {
             calc: function (dt, row) {
                 // tooltip for sell orders
                 if (dt.getValue(row, 5) && dt.getValue(row, 6) == 'SELL') {
+                    //Order number at column 10
+                    text = "#"+dt.getValue(row, 10);
                     //date
-                    text = "Sell Order: "+dt.getValue(row, 0)+"\n";
+                    text += " Sell Order: "+dt.getValue(row, 0)+"\n";
                     // stop loss and take profit are in columns 7 and 8
-                    text += dt.getValue(row, 5) + " SL:"+dt.getValue(row,7)+" TP:"+dt.getValue(row,8)+"\n";
+                    text += "Entry: "+dt.getValue(row, 5) + ", SL:"+dt.getValue(row,7)+", TP:"+dt.getValue(row,8)+"\n";
                     // exit rate in column 9
-                    text += 'Exit: '+dt.getValue(row,9)+' - ';
-                    // exit rate and entry rate comparison
-                    text+=(dt.getValue(row,9) < dt.getValue(row,6))?'Success':'Fail';
+                    if(dt.getValue(row,9) > 0){
+                        text += 'Exit: '+dt.getValue(row,9)+' - ';
+                        // exit rate and entry rate comparison
+                        text+=(dt.getValue(row,9) < dt.getValue(row,5))?'Success':'Fail';
+                    }
                     return text;
                 }
             }
         },
-    10]);
+    11]);
 
     var chart = new google.visualization.ComboChart(document.querySelector('#chart_div'));
     chart.draw(view, {

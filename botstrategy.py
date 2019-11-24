@@ -1,9 +1,9 @@
-from botlog import BotLog
-from botindicators import BotIndicators
-from bottrade import BotTrade
 from botapi import BotApi
+from botindicators import BotIndicators
+from botlog import BotLog
+from bottrade import BotTrade
+
 import shared
-import poloniex
 import sys
 
 
@@ -15,7 +15,7 @@ import sys
 # THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
 # THIS STRATEGY IS OBVIOUSLY NOT WORKING! DON'T GO LIVE USING IT!!!
 class BotStrategy(object):
-    def __init__(self, backtest=True, forwardtest=True):
+    def __init__(self, backtest=True, live=False):
         self.output = BotLog()
         self.pair = shared.exchange['pair']
         self.coinsInOrder = shared.exchange['coinsInOrder']
@@ -23,13 +23,13 @@ class BotStrategy(object):
         self.trades = []
         self.currentPrice = ""
         self.currentClose = ""
+        self.live = live
         self.lowestAsk = 0.00
         self.highestBid = 0.00
         self.simultaneousTrades = 4
         self.tradeMultiplier = 0.1
         self.ticker = {}
         self.backTest = backtest
-        self.forwardTest = forwardtest
         self.indicators = BotIndicators()
 
         self.candlesticks = []
@@ -37,14 +37,13 @@ class BotStrategy(object):
         self.movingAveragePeriod = shared.strategy['movingAverageLength']
         self.trueRanges = []
         self.averageTrueRanges = []
-
-        # portfolio
         self.openOrders = []
 
-        #api
+        # API
         self.api = BotApi()
 
     def tick(self,candlestick):
+        self.sell(1, 0.01, candlestick.date)
 
         #strategy works on closed candles only
         if not candlestick.isClosed():
@@ -62,7 +61,7 @@ class BotStrategy(object):
         atr = self.indicators.averageTrueRange(self.trueRanges, 5)
         self.averageTrueRanges.append(atr)
 
-        self.ticker = self.getTicker(self.pair)
+        self.ticker = self.getTicker()
 
         portfolioUpdated = self.updatePortfolio()
         # If live and portfolio not updated, we may run into some unpleasant issues.
@@ -114,25 +113,21 @@ class BotStrategy(object):
             trade.tick(self.candlesticks[-1], self.candlesticks[-1].date)
 
     def getOpenOrders(self, pair):
-        if not self.backTest and not self.forwardTest:
-            orders = self.api.returnOpenOrders(pair)
-            return orders
-        else:
-            openOrders = []
-            for order in self.trades:
-                if order.status == 'OPEN':
-                    openOrders.append(order)
-            return openOrders
+        openOrders = []
+        #TODO: implement live
+        for order in self.trades:
+            if order.status == 'OPEN':
+                openOrders.append(order)
+        return openOrders
 
-    def getCurrentPrice(self, pair):
+    def getTicker(self):
         if not self.backTest:
-            return self.api.returnTicker(pair)['last']
-        else:
-            return self.candlesticks[-1].close
-
-    def getTicker(self, pair):
-        if not self.backTest:
-            return self.api.returnTicker(pair)
+            ticker = self.api.fetchTicker(self.pair)
+            return {
+                'last': ticker['last'],
+                'highestBid': ticker['bid'],
+                'lowestAsk': ticker['ask']
+            }
         else:
             return {
                 'last': self.currentPrice,
@@ -141,17 +136,21 @@ class BotStrategy(object):
             }
 
     def updatePortfolio(self):
-        if not self.backTest and not self.forwardTest:
+        if not self.backTest and self.live:
             try:
-                portfolio = self.api.returnBalances()
+                portfolio = self.api.fetchBalance()
                 if shared.exchange['market'] in portfolio:
-                    shared.exchange['nbMarket'] = float(portfolio[shared.exchange['market']])
+                    shared.exchange['nbMarket'] = float(portfolio[shared.exchange['market']]['free'])
+                    shared.exchange['marketInOrder'] = float(portfolio[shared.exchange['market']]['used'])
                 else:
                     shared.exchange['nbMarket'] = 0.00
+                    shared.exchange['marketInOrder'] = 0.00
                 if shared.exchange['coin'] in portfolio:
-                    shared.exchange['nbCoin'] = float(portfolio[shared.exchange['coin']])
+                    shared.exchange['nbCoin'] = float(portfolio[shared.exchange['coin']]['free'])
+                    shared.exchange['coinsInOrder'] = float(portfolio[shared.exchange['coin']]['used'])
                 else:
                     shared.exchange['nbCoin'] = 0.00
+                    shared.exchange['coinsInOrder'] = 0.00
                 return True
             except Exception as e:
                 self.output.warning("Error updating portfolio")
@@ -161,17 +160,17 @@ class BotStrategy(object):
             return True
 
     def showPortfolio(self):
-        if not self.backTest and not self.forwardTest:
+        if not self.backTest and self.live:
             self.updatePortfolio()
         self.output.log(str(shared.exchange['nbMarket'])+" "+str(shared.exchange['market'])+' - '+str(shared.exchange['nbCoin'])+" "+str(shared.exchange['coin']))
 
     def buy(self, rate, total, date, stopLoss=0, takeProfit=0):
         amount = total/rate
-        order = BotTrade('BUY', rate=rate, amount=amount, total=total, date=date, stopLoss=stopLoss, takeProfit=takeProfit, backtest=self.backTest, forwardtest=self.forwardTest)
+        order = BotTrade('BUY', rate=rate, amount=amount, total=total, date=date, stopLoss=stopLoss, takeProfit=takeProfit, backtest=self.backTest, live=self.live)
         self.trades.append(order)
 
 
     def sell(self, rate, amount, date, stopLoss=0, takeProfit=0):
         total = rate*amount
-        order = BotTrade('SELL',rate=rate,amount=amount, total=total, date=date, stopLoss=stopLoss, takeProfit=takeProfit, backtest=self.backTest, forwardtest=self.forwardTest)
+        order = BotTrade('SELL',rate=rate,amount=amount, total=total, date=date, stopLoss=stopLoss, takeProfit=takeProfit, backtest=self.backTest, live=self.live)
         self.trades.append(order)

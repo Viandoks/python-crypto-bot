@@ -4,7 +4,8 @@ api = {
 }
 
 strategy = {
-    'movingAverageLength': 14
+    'movingAverageLength': 14,
+    'timeframe': None
 }
 
 exchange = {

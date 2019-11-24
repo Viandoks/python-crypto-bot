@@ -1,21 +1,24 @@
-import sys, getopt
-import time
-
 from botlog import BotLog
 
+import shared
+import sys, getopt
+import time
+import utils
+
+
 class BotCandlestick(object):
-    def __init__(self,period,open=None,close=None,high=None,low=None,priceAverage=None,volume=None,date=None):
-        self.open = open
+    def __init__(self,date=None,open=None,high=None,low=None,close=None,volume=None):
         self.close = close
+        self.currentPrice = close
+        self.date = date
         self.high = high
         self.low = low
-        self.startTime = time.time()
-        self.period = period
+        self.open = open
         self.output = BotLog()
-        self.priceAverage = priceAverage
+        self.priceAverage = False
+        self.startTime = time.time()
         self.volume = volume
-        self.date = date
-        self.currentPrice = close
+
         if self.close:
             self.currentPrice = self.close
 
@@ -27,20 +30,20 @@ class BotCandlestick(object):
 
     def toDict(self):
         return {
+            'close': self.close,
             'currentPrice': self.currentPrice,
-            'open' : self.open,
+            'date': self.date,
             'high': self.high,
             'low': self.low,
-            'close': self.close,
-            'startTime': self.startTime,
-            'period': self.period,
+            'open' : self.open,
             'priceAverage': self.priceAverage,
-            'volume': self.volume,
-            'date': self.date
+            'startTime': self.startTime,
+            'volume': self.volume
         }
 
-    def tick(self,price):
+    def tick(self, price):
         self.currentPrice = float(price)
+
         if self.date is None:
             self.date = time.time()
         if (self.open is None):
@@ -52,11 +55,13 @@ class BotCandlestick(object):
         if (self.low is None) or (self.currentPrice < self.low):
             self.low = self.currentPrice
 
-        if time.time() >= ( self.startTime + self.period):
+
+        timedelta = utils.parseTimedelta(shared.strategy['timeframe'])
+        if time.time() >= ( self.startTime + timedelta):
             self.close = self.currentPrice
             self.priceAverage = ( self.high + self.low + self.close ) / float(3)
 
-        self.output.log("Start time: "+str(self.startTime)+", period: "+str(self.period)+" Open: "+str(self.open)+" Close: "+str(self.close)+" High: "+str(self.high)+" Low: "+str(self.low)+" currentPrice: "+str(self.currentPrice))
+        self.output.log("Start time: "+str(self.startTime)+",  Open: "+str(self.open)+" Close: "+str(self.close)+" High: "+str(self.high)+" Low: "+str(self.low)+" currentPrice: "+str(self.currentPrice))
 
     def isClosed(self):
         if (self.close is not None):
