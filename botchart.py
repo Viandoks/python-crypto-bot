@@ -66,10 +66,12 @@ class BotChart(object):
             candlesticks['ma'] = ma
         else:
             candlesticks['ma'] = 0
+        candlesticks['date'] = candlesticks['date']/1000
         candlesticks.set_index('date', inplace=True)
 
         # orders
         orders = pd.DataFrame.from_records([o.toDict() for o in orders])
+        orders['date'] = orders['date']/1000
         if len(orders)>1:
             orders.set_index('date', inplace=True)
         else :
