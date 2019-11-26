@@ -57,7 +57,7 @@ class BotStrategy(object):
         tr = self.indicators.trueRange(self.candlesticks)
         self.trueRanges.append(tr)
 
-        atr = self.indicators.averageTrueRange(self.trueRanges, 5)
+        atr = self.indicators.averageTrueRange(self.candlesticks, 5)
         self.averageTrueRanges.append(atr)
 
         self.ticker = self.getTicker()
