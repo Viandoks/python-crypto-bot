@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 from botcandlestick import BotCandlestick
 from operator import attrgetter
@@ -7,12 +7,79 @@ class BotIndicators(object):
     def __init__(self):
          pass
 
-    def averageTrueRange(self, trueRanges=[], period = 14):
-        trueRanges=trueRanges[-period:]
-        if len(trueRanges) < period:
-            period = len(trueRanges)
-        atr = self.sma(trueRanges, period, False)
+    def averageTrueRange(self, candles, window = 14):
+        if len(candles)<window:
+            window = len(candles)
+
+        trueRanges = []
+        for i in range(0, window):
+            if i > 0:
+                trueRanges.append(self.trueRange(candles[-i-1:-i]))
+            else:
+                trueRanges.append(self.trueRange(candles[-1:]))
+        atr = self.sma(trueRanges, window, False)
         return atr
+
+    def directionalMovement(self, candles, window=14):
+        if len(candles) < window+2:
+            window = len(candles)
+        candles = candles[-(window+2):]
+        highs = []
+        lows = []
+        closes = []
+        pDMs = []
+        nDMs = []
+        for i in range(0, len(candles)):
+            highs.append(candles[i]['high'])
+            lows.append(candles[i]['low'])
+            closes.append(candles[i]['close'])
+            pDM = 0
+            nDM = 0
+            if i > 0:
+                upMove = highs[i]-highs[i-1]
+                dnMove = lows[i-1] - lows[i]
+                if (upMove>dnMove) & (upMove > 0):
+                    pDM = upMove
+                if (dnMove>upMove) & (dnMove > 0):
+                    nDM = dnMove
+            pDMs.append(pDM)
+            nDMs.append(nDM)
+
+        ATR = self.averageTrueRange(candles, window)
+        pDI = self.sma(pDMs, window)/ATR*100
+        nDI = self.sma(nDMs, window)/ATR*100
+        sum = pDI+nDI
+        sum = 1 if sum==0 else sum
+        DX = abs(pDI-nDI)/sum*100
+        return {
+            'pDI': pDI,
+            'nDI': nDI,
+            'DX': DX
+        }
+
+
+        DMI = pd.DataFrame(columns=['pDI', 'nDI', 'DX', 'ADX'])
+        upMove = highs - highs.shift()
+        dnMove = lows.shift() - lows
+        pDM = closes*0
+        nDM = closes*0
+        pDM[(upMove>dnMove) & (upMove > 0)] = upMove
+        nDM[(dnMove>upMove) & (dnMove > 0)] = dnMove
+        TR = self.trueRange(highs, lows, closes)
+        ATR = self.smoothedMovingAverage(TR, window, fillna)
+        pDI = self.smoothedMovingAverage(pDM)/ATR*100
+        nDI = self.smoothedMovingAverage(nDM)/ATR*100
+        sum = pDI+nDI
+        sum[pDI+nDI==0] = 1
+        DX = abs(pDI-nDI)/sum*100
+        ADX = self.smoothedMovingAverage(DX, adxWindow-1, fillna)
+        DMI['pDI'] = pDI
+        DMI['nDI'] = nDI
+        DMI['DX'] = DX
+        DMI['ADX'] = ADX
+        return DMI
+    def DMI(self, highs, lows, closes, window=14, adxWindow=14, fillna = False):
+        return self.directionalMovementIndex(highs, lows, closes, window, adxWindow, fillna)
 
     def donchianChannels(self, candlesticks, period=20):
         candlesticks = candlesticks[-period:]
@@ -21,46 +88,45 @@ class BotIndicators(object):
             'donchian_low': float(min([c['low'] for c in candlesticks]))
         }
 
-
     def ema(self, data, period, key=False):
         if len(data) <= period:
             period = len(data)
 
-        weights = numpy.exp(numpy.linspace(-1., 0., period))
+        weights = np.exp(np.linspace(-1., 0., period))
         weights /= weights.sum()
 
         if key:
-           dataPoints = numpy.asarray([c[key] for c in data])
+           dataPoints = np.asarray([c[key] for c in data])
         else:
-            dataPoints = numpy.asarray(data)
+            dataPoints = np.asarray(data)
 
         # not so sure about this, need to double check
-        avg = numpy.convolve(dataPoints, weights, mode='full')[:len(dataPoints)]
+        avg = np.convolve(dataPoints, weights, mode='full')[:len(dataPoints)]
         return avg[-1]
 
     def gmma(self, candlesticks, key='close', p1=3, p2=5, p3=8, p4=10, p5=12, p6=15):
         return [
-            self.sma(candlesticks, p1, key),
-            self.sma(candlesticks, p2, key),
-            self.sma(candlesticks, p3, key),
-            self.sma(candlesticks, p4, key),
-            self.sma(candlesticks, p5, key),
-            self.sma(candlesticks, p6, key)
-            ]
+            self.ma(candlesticks, p1, key),
+            self.ma(candlesticks, p2, key),
+            self.ma(candlesticks, p3, key),
+            self.ma(candlesticks, p4, key),
+            self.ma(candlesticks, p5, key),
+            self.ma(candlesticks, p6, key)
+        ]
 
 
-    def heikinashi(self, currentCandle, previousHeikinashiCandle=False):
-        if not previousHeikinashiCandle:
+    def heikinashi(self, currentCandle, previousCandle=False):
+        if not previousCandle:
             o = (currentCandle.open+currentCandle.close)/2
         else:
-            o = (previousHeikinashiCandle.open+previousHeikinashiCandle.close)/2
+            o = (previousCandle.open+previousCandle.close)/2
 
         c = (currentCandle.open+currentCandle.high+currentCandle.low+currentCandle.close)/4
 
         h = max((o, c, currentCandle.high))
         l = min((o, c, currentCandle.low))
 
-        return BotCandlestick(14400,o,c,h,l,0, currentCandle.date)
+        return BotCandlestick(currentCandle.date,o,h,l,c,0)
 
     #ichimoku default periods are 9, 26, 26, here default values are adapted to crypto market
     def ichimoku(self, candlesticks, tenkanPeriod=10, kijunPeriod=30, senkouBPeriod=60, displacement=30):
@@ -108,15 +174,26 @@ class BotIndicators(object):
         else:
             return data[-1][key] * 100 / dataPoints[-period][key]
 
-    #Simple Moving Average
-    def sma(self, data, period, key=False):
-        if len(data) < period:
-            period = len(data)
+    #simple moving average
+    def ma(self, data, window, key=False):
+        if len(data) < window:
+            window = len(data)
         if key:
-            dataPoints = [c[key] for c in data[-period:]]
+            dataPoints = [c[key] for c in data[-window:]]
         else:
-            dataPoints = data
+            dataPoints = data[-window:]
         return sum(dataPoints) / float(len(dataPoints))
+
+    #smoothed Moving Average
+    def sma(self, data, window=14, key=False):
+        if len(data) < window:
+            window = len(data)
+        if key:
+            dataPoints = [c[key] for c in data[-window:]]
+        else:
+            dataPoints = data[-window:]
+        weights = np.repeat(1.0, window) / window
+        return np.convolve(dataPoints, weights, 'valid')[0]
 
     def RSI (self, prices, period=14):
         deltas = np.diff(prices)
