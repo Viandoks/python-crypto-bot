@@ -7,6 +7,7 @@ import shared
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botcandlestick import BotCandlestick
+import ccxt
 
 def main(argv):
 
@@ -70,9 +71,18 @@ def main(argv):
 
         x = 0
         while True:
-            currentPrice = chart.getCurrentPrice()
-            candlestick.tick(currentPrice)
-            strategy.tick(candlestick)
+            try:
+                currentPrice = chart.getCurrentPrice()
+                candlestick.tick(currentPrice)
+                strategy.tick(candlestick)
+            except ccxt.DDoSProtection as e:
+                print(type(e).__name__, e.args, 'DDoS Protection (ignoring)')
+            except ccxt.RequestTimeout as e:
+                print(type(e).__name__, e.args, 'Request Timeout (ignoring)')
+            except ccxt.ExchangeNotAvailable as e:
+                print(type(e).__name__, e.args, 'Exchange Not Available due to downtime or maintenance (ignoring)')
+            except ccxt.AuthenticationError as e:
+                print(type(e).__name__, e.args, 'Authentication Error (missing API keys, ignoring)')
 
             drawingCandles = copy.copy(strategy.candlesticks)
             if not candlestick.isClosed():

@@ -33,8 +33,8 @@ class BotIndicators(object):
             highs.append(candles[i]['high'])
             lows.append(candles[i]['low'])
             closes.append(candles[i]['close'])
-            pDM = 0
-            nDM = 0
+            pDM = 0.0
+            nDM = 0.0
             if i > 0:
                 upMove = highs[i]-highs[i-1]
                 dnMove = lows[i-1] - lows[i]
