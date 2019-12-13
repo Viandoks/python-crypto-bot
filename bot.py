@@ -75,6 +75,11 @@ def main(argv):
                 currentPrice = chart.getCurrentPrice()
                 candlestick.tick(currentPrice)
                 strategy.tick(candlestick)
+                
+            except ccxt.NetworkError as e:
+                print(type(e).__name__, e.args, , 'Exchange error (ignoring)')
+            except ccxt.ExchangeError as e:
+                print(type(e).__name__, e.args, , 'Exchange error (ignoring)')
             except ccxt.DDoSProtection as e:
                 print(type(e).__name__, e.args, 'DDoS Protection (ignoring)')
             except ccxt.RequestTimeout as e:
