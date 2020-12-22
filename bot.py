@@ -77,9 +77,9 @@ def main(argv):
                 strategy.tick(candlestick)
                 
             except ccxt.NetworkError as e:
-                print(type(e).__name__, e.args, , 'Exchange error (ignoring)')
+                print(type(e).__name__, e.args, 'Exchange error (ignoring)')
             except ccxt.ExchangeError as e:
-                print(type(e).__name__, e.args, , 'Exchange error (ignoring)')
+                print(type(e).__name__, e.args, 'Exchange error (ignoring)')
             except ccxt.DDoSProtection as e:
                 print(type(e).__name__, e.args, 'DDoS Protection (ignoring)')
             except ccxt.RequestTimeout as e:
