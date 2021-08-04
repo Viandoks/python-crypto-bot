@@ -32,7 +32,7 @@ class BotChart(object):
                 print(self.api.exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
 
                 for ohlcv in ohlcvs:
-                    self.data.append(BotCandlestick(float(ohlcv[0]), float(ohlcv[1]), float(ohlcv[2]), float(ohlcv[3]), float(ohlcv[4]), float(ohlcv[5])))
+                    self.data.append(BotCandlestick(float(ohlcv[0])/1000, float(ohlcv[1]), float(ohlcv[2]), float(ohlcv[3]), float(ohlcv[4]), float(ohlcv[5])))
 
 
             except (self.api.ExchangeError, self.api.AuthenticationError, self.api.ExchangeNotAvailable, self.api.RequestTimeout) as error:
