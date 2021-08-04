@@ -80,6 +80,7 @@ class BotChart(object):
         # concat all to one dataframe
         data = pd.concat([candlesticks, orders], axis=1)
         data['direction'].fillna('None', inplace=True)
+        data['ma'].fillna(method='ffill', inplace=True)
         data.fillna(0, inplace=True)
 
         # add to data.js
