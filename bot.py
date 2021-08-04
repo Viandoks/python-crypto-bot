@@ -3,52 +3,30 @@ import time
 import pprint
 import copy
 import shared
-
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botcandlestick import BotCandlestick
 import ccxt
 
-def main(argv):
 
-    startTime = False
-    endTime = False
+def main(argv):
     live = False
-    movingAverageLength = 20
 
     try:
-        opts, args = getopt.getopt(argv,"ht:c:n:s:e",["timeframe=","currency=","exchange=","live"])
+        opts, args = getopt.getopt(argv, "", ["live"])
     except getopt.GetoptError:
-        print('trading-bot.py -t <timeframe> -c <currency pair>')
+        print('trading-bot.py')
         sys.exit(2)
 
     for opt, arg in opts:
-        if opt == '-h':
-            print('trading-bot.py -t <timeframe> -c <currency pair>')
-            sys.exit()
-        elif opt in ("-s"):
-            startTime = str(arg)
-        elif opt in ("-e"):
-            endTime = str(arg)
-        elif opt in ("-t", "--timeframe"):
-            timeframe = str(arg)
-            shared.strategy['timeframe'] = timeframe
-        elif opt in ("-c", "--currency"):
-            pair = str(arg)
-            shared.exchange['pair'] = pair
-            shared.exchange['market'] = pair.split("/")[1]
-            shared.exchange['coin'] = pair.split("/")[0]
-        elif opt in ("--exchange"):
-            exchange = str(arg)
-            shared.exchange['name'] = exchange
-        elif opt == "--live":
-            print("You're going live... All loss are your reponsability only!")
+        if opt == "--live":
+            print("You're going live... Losses are your responsibility only!")
             live = True
 
-    # startTime specified: we are in backtest mode
-    if (startTime):
+    # START_DATE specified: we are in backtest mode
+    if shared.strategy['start_date']:
 
-        chart = BotChart(timeframe, startTime, endTime)
+        chart = BotChart()
 
         strategy = BotStrategy()
         strategy.showPortfolio()
@@ -62,7 +40,7 @@ def main(argv):
 
     else:
 
-        chart = BotChart(timeframe, False, False, False)
+        chart = BotChart(False)
 
         strategy = BotStrategy(False, live)
         strategy.showPortfolio()
@@ -75,7 +53,7 @@ def main(argv):
                 currentPrice = chart.getCurrentPrice()
                 candlestick.tick(currentPrice)
                 strategy.tick(candlestick)
-                
+
             except ccxt.NetworkError as e:
                 print(type(e).__name__, e.args, 'Exchange error (ignoring)')
             except ccxt.ExchangeError as e:
@@ -98,8 +76,9 @@ def main(argv):
             if candlestick.isClosed():
                 candlestick = BotCandlestick()
 
-            x+=1
-            time.sleep(int(10))
+            x += 1
+            time.sleep(shared.exchange['interval'])
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

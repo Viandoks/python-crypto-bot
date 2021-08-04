@@ -36,7 +36,7 @@ class BotTrade(object):
         if self.direction == "BUY":
             if not self.backTest and self.live:
                 try:
-                    order = self.api.createLimitBuyOrder(shared.exchange['pair'], amount, rate)
+                    order = self.api.exchange.createLimitBuyOrder(shared.exchange['pair'], amount, rate)
                     self.orderNumber = order['id']
                 except Exception as e:
                     self.output.fail(str(e))
@@ -48,12 +48,12 @@ class BotTrade(object):
             if orderSuccess:
                 shared.exchange['nbMarket'] -= self.total
                 self.amount -= self.amount*self.fee
-                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.rate)+' for '+str(self.total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
+                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Buy "+str(self.amount)+' '+shared.exchange['asset']+' ('+str(self.fee*100)+'% fees) at '+str(self.rate)+' for '+str(self.total)+' '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
 
         elif self.direction == "SELL":
             if not self.backTest and self.live:
                 try:
-                    order = self.api.createLimitSellOrder(shared.exchange['pair'], amount, rate)
+                    order = self.api.exchange.createLimitSellOrder(shared.exchange['pair'], amount, rate)
                     self.orderNumber = order['id']
                 except Exception as e:
                     print(e)
@@ -63,9 +63,9 @@ class BotTrade(object):
                 orderSuccess = False
                 self.output.fail("Not enough funds to place Sell Order")
             if orderSuccess:
-                shared.exchange['nbCoin'] -= self.amount
+                shared.exchange['nbAsset'] -= self.amount
                 self.total -= self.total*self.fee
-                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Sell "+str(self.amount)+' '+shared.exchange['coin']+' at '+str(self.rate)+' for '+str(self.total)+' ('+str(self.fee*100)+'% fees) '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
+                self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Sell "+str(self.amount)+' '+shared.exchange['asset']+' at '+str(self.rate)+' for '+str(self.total)+' ('+str(self.fee*100)+'% fees) '+shared.exchange['market']+' - stopLoss: '+str(self.stopLoss)+' - takeProfit: '+str(self.takeProfit))
 
 
         orderNb+=1
@@ -101,9 +101,9 @@ class BotTrade(object):
         if not self.filledOn:
             if (self.direction == 'BUY' and candlestick.high > self.rate) or (self.direction == 'SELL' and candlestick.low < self.rate):
                 self.filledOn = date
-                if self.direction =='BUY':
-                    shared.exchange['nbCoin'] += self.amount
-                elif self.direction =='SELL':
+                if self.direction == 'BUY':
+                    shared.exchange['nbAsset'] += self.amount
+                elif self.direction == 'SELL':
                     shared.exchange['nbMarket'] += self.total
                 if not self.stopLoss and not self.takeProfit:
                     self.status = 'CLOSED'
@@ -118,31 +118,31 @@ class BotTrade(object):
             # TODO: implement live
             if self.direction == 'BUY' and candlestick.low < self.stopLoss:
                 self.total -= self.total*self.fee
-                shared.exchange['nbCoin'] -= self.amount
+                shared.exchange['nbAsset'] -= self.amount
                 shared.exchange['coinsInOrder'] -= self.amount
-                self.output.warning(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Stop Loss - Sell "+str(self.amount)+' '+shared.exchange['coin']+' at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market']+' ('+str(self.fee*100)+'% fees)')
+                self.output.warning(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Stop Loss - Sell "+str(self.amount)+' '+shared.exchange['asset']+' at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market']+' ('+str(self.fee*100)+'% fees)')
                 self.close(self.stopLoss, date)
                 return
             elif self.direction == 'SELL' and candlestick.high > self.stopLoss:
                 self.amount -= self.amount*self.fee
                 shared.exchange['nbMarket'] -= self.total
                 shared.exchange['marketInOrder'] -= self.total
-                self.output.warning(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Stop Loss - Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market'])
+                self.output.warning(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Stop Loss - Buy "+str(self.amount)+' '+shared.exchange['asset']+' ('+str(self.fee*100)+'% fees) at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market'])
                 self.close(self.stopLoss, date)
                 return
         if self.takeProfit and self.filledOn:
             if self.direction == 'BUY' and candlestick.high > self.takeProfit:
                 self.total -= self.total*self.fee
-                shared.exchange['nbCoin'] -= self.amount
+                shared.exchange['nbAsset'] -= self.amount
                 shared.exchange['coinsInOrder'] -= self.amount
-                self.output.success(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Take Profit - Sell "+str(self.amount)+' '+shared.exchange['coin']+' at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market']+' ('+str(self.fee*100)+'% fees)')
+                self.output.success(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Take Profit - Sell "+str(self.amount)+' '+shared.exchange['asset']+' at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market']+' ('+str(self.fee*100)+'% fees)')
                 self.close(self.takeProfit, date)
                 return
             elif self.direction == 'SELL' and candlestick.low < self.takeProfit:
                 self.amount -= self.amount*self.fee
                 shared.exchange['nbMarket'] -= self.total
                 shared.exchange['marketInOrder'] -= self.total
-                self.output.success(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Take Profit - Buy "+str(self.amount)+' '+shared.exchange['coin']+' ('+str(self.fee*100)+'% fees) at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market'])
+                self.output.success(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+": Take Profit - Buy "+str(self.amount)+' '+shared.exchange['asset']+' ('+str(self.fee*100)+'% fees) at '+str(self.stopLoss)+' for '+str(self.total)+' '+shared.exchange['market'])
                 self.close(self.takeProfit, date)
                 return
 
@@ -157,7 +157,7 @@ class BotTrade(object):
         if self.direction == 'BUY':
             shared.exchange['nbMarket'] += self.total
         elif self.direction == 'SELL':
-            shared.exchange['nbCoin'] += self.amount
+            shared.exchange['nbAsset'] += self.amount
         self.output.info(str(time.ctime(date)) + " - Order "+str(self.orderNumber)+" Closed")
         self.showTrade()
 
@@ -172,7 +172,7 @@ class BotTrade(object):
             if self.direction == 'BUY':
                 tradeStatus = tradeStatus+str((self.exitRate - self.rate)/self.total)+str(shared.exchange['market'])+"\033[0m"
             else:
-                tradeStatus = tradeStatus+str((self.rate - self.exitRate)/self.exitRate*self.amount)+str(shared.exchange['coin'])+"\033[0m"
+                tradeStatus = tradeStatus+str((self.rate - self.exitRate)/self.exitRate*self.amount)+str(shared.exchange['asset'])+"\033[0m"
 
         self.output.log(tradeStatus)
 

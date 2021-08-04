@@ -105,3 +105,7 @@ venv.bak/
 
 # custom
 /ouput/data.js
+
+.DS_STORE
+.idea/
+output/data.js

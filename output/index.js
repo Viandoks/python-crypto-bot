@@ -2,7 +2,6 @@ var i = 0;
 google.charts.load('current', {'packages':['corechart']});
 google.charts.setOnLoadCallback(drawChart);
 function drawChart() {
-    console.log()
 
     document.getElementById("last_call").innerText = 'Last call: '+lastcall
 
@@ -22,7 +21,7 @@ function drawChart() {
 
     Object.keys(dataRows).map(function(k) {
         data.addRow([
-            new Date(k*1000),           // 0
+            new Date(k*1000),     // 0
             dataRows[k].low,            // 1
             dataRows[k].open,           // 2
             dataRows[k].close,          // 3

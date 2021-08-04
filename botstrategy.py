@@ -26,15 +26,15 @@ class BotStrategy(object):
         self.live = live
         self.lowestAsk = 0.00
         self.highestBid = 0.00
-        self.simultaneousTrades = 4
-        self.tradeMultiplier = 0.1
+        self.simultaneousTrades = 1
+        self.tradeMultiplier = 1
         self.ticker = {}
         self.backTest = backtest
         self.indicators = BotIndicators()
 
         self.candlesticks = []
         self.movingAverages = []
-        self.movingAveragePeriod = shared.strategy['movingAverageLength']
+        self.movingAveragePeriod = 3
         self.trueRanges = []
         self.averageTrueRanges = []
         self.openOrders = []
@@ -42,9 +42,9 @@ class BotStrategy(object):
         # API
         self.api = BotApi()
 
-    def tick(self,candlestick):
+    def tick(self, candlestick):
 
-        #strategy works on closed candles only
+        # strategy works on closed candles only
         if not candlestick.isClosed():
             return
         else:
@@ -94,16 +94,12 @@ class BotStrategy(object):
         if golong1 and golong2 and len(openOrders) < self.simultaneousTrades:
             rate = float(self.ticker['lowestAsk'])
             total = (shared.exchange['nbMarket']-shared.exchange['marketInOrder'])*self.tradeMultiplier
-            stoploss = self.currentPrice-self.averageTrueRanges[-1]
-            takeprofit = self.currentPrice+(2*self.averageTrueRanges[-1])
-            self.buy(rate, total, self.candlesticks[-1].date, stoploss, takeprofit)
+            self.buy(rate, total, self.candlesticks[-1].date)
 
         if goshort1 and goshort2 and len(openOrders) < self.simultaneousTrades:
             rate = float(self.ticker['highestBid'])
-            amount = (shared.exchange['nbCoin']-shared.exchange['coinsInOrder'])*self.tradeMultiplier
-            stoploss = self.currentPrice+self.averageTrueRanges[-1]
-            takeprofit = self.currentPrice-(2*self.averageTrueRanges[-1])
-            self.sell(rate, amount, self.candlesticks[-1].date, stoploss, takeprofit)
+            amount = (shared.exchange['nbAsset']-shared.exchange['coinsInOrder'])*self.tradeMultiplier
+            self.sell(rate, amount, self.candlesticks[-1].date)
 
     def updateOpenTrades(self, pair):
         openOrders = self.getOpenOrders(pair)
@@ -121,7 +117,7 @@ class BotStrategy(object):
 
     def getTicker(self):
         if not self.backTest:
-            ticker = self.api.fetchTicker(self.pair)
+            ticker = self.api.exchange.fetchTicker(self.pair)
             return {
                 'last': ticker['last'],
                 'highestBid': ticker['bid'],
@@ -137,7 +133,7 @@ class BotStrategy(object):
     def updatePortfolio(self):
         if not self.backTest and self.live:
             try:
-                portfolio = self.api.fetchBalance()
+                portfolio = self.api.exchange.fetchBalance()
                 if shared.exchange['market'] in portfolio:
                     shared.exchange['nbMarket'] = float(portfolio[shared.exchange['market']]['free'])
                     shared.exchange['marketInOrder'] = float(portfolio[shared.exchange['market']]['used'])
@@ -161,7 +157,7 @@ class BotStrategy(object):
     def showPortfolio(self):
         if not self.backTest and self.live:
             self.updatePortfolio()
-        self.output.log(str(shared.exchange['nbMarket'])+" "+str(shared.exchange['market'])+' - '+str(shared.exchange['nbCoin'])+" "+str(shared.exchange['coin']))
+        self.output.log(str(shared.exchange['nbMarket'])+" "+str(shared.exchange['market'])+' - '+str(shared.exchange['nbAsset'])+" "+str(shared.exchange['asset']))
 
     def buy(self, rate, total, date, stopLoss=0, takeProfit=0):
         amount = total/rate

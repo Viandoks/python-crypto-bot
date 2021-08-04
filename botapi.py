@@ -6,4 +6,4 @@ def BotApi():
         'apiKey': shared.api['key'],
         'secret': shared.api['secret']
     })
-    return ccxt.exchange
+    return ccxt
