@@ -44,49 +44,49 @@ cd python-crypto-bot
 
 ### How to
 
+#### Configuration
+Rename `.env.sample` to `.env` and edit it to your preferences.
+```.env
+API_KEY=                        YourApiKey
+API_SECRET=                     YourApiSecret
+
+ASSET=BTC                       or any asset available on the exchance 
+MARKET=USDT                     or any base asset available on the exchange
+TIMEFRAME=1m                    or any timeframce available
+COINS_ASSET=1                   used for backtest, how much assets to start with
+COINS_MARKET=100                used for backtest, how much base assets to start with
+
+EXCHANGE=poloniex               your choice of exchange available in CCXT
+FEES=0.125                      used for backtest, emulate fees in %
+SPREAD=0.00                     used for backtest, emulate spread in %
+
+ALLOCATION=1                    how much of your assets do you want to play at each order (1==100%)
+INTERVAL=10                      used for forward test and live, interval between each call to the API in seconds 
+START_DATE=2021-01-01 00:00:00  date at which backtest should start, if not specified, bot will run in forward test mode         
+``` 
+
 #### Run backtest
 
 ```
-python bot.py -c 'BTC/USDT' -t 1d -s '2019-01-31 00:00:00'
+python bot.py 
 ```
 
-This will launch the trading strategy on the pair BTC/USDT, with a candlestick period of 1 day, starting on 2019-01-31 at 00:00:00.
+This will launch the trading strategy on the pair `ASSET`/`MARKET`, with a candlestick period of `TIMEFRAME`, starting on `START_DATE`.
 
 You can see the result in the command line AND the output/index.html file in the project
 
 #### Run forward test
 
-Not specifying the -s argument will launch the bot in forward test mode
-```
-python bot.py -c 'BTC/USDT' -t 1d
-```
+Leave `START_DATE` empty to run forward test 
 
-A new call is made every 10 seconds. You can follow the trades almost live be reloading output/index.html
+A new call is made every `INTERVAL` seconds. You can follow the trades almost live be reloading output/index.html
 
 #### Run live
 !!!!! DO NOT DO THIS IF YOU'RE NOT 100% SURE OF WHAT YOU'RE DOING! I WILL NOT BE HELD RESPONSIBLE IF YOU LOSE MONEY!!!!!
 To run the bot live you need to enter your api key and secret in the shared.py file. If you don't know what an api key is, you shouldn't even try to launch that bot live. However feel free to have fun in backtest and forward test mode.
 ```
-python bot.py -c 'BTC/USDT' -t 1d --live
+python bot.py --live
 ```
-
-#### Arguments
-
-**Mandatory**
-
-`-c currency_pair` to let know the bot on what currency pair it should be woking. eg: `-c BTC/USDT`
-
-`-t candlestick_timeframe` timeframe in a humanely readable format. In backtest mode this should be a period compatible with the exchange you decide to use. In forward test and live mode, it can be any increment of seconds you want, eg: 30s, 2m, 3h, 2d.
-
-**Optional**
-
-`-s timestamp` if specified bot will automatically launch in backtestmode. This is the timestamp of the starting date eg: `-s 1494491969`. If -s is not specified then bot will launch in forward test
-
-`-e timestamp` This is the timestamp of the ending tests for the tests. It should be greater than `-s`
-
-`-exchange str` Any exchange available with CCXT
-
-`--live` Whill launch bot in live mode.
 
 ### Important files
 `shared.py` contains a bunch of variable shared across the different modules
